@@ -4,7 +4,7 @@
   "tools": [
     {
       "name": "generate_reply",
-      "description": "Genera una respuesta basada en el sentimiento.",
+      "description": "Genera una respuesta automática a la reseña.",
       "input_schema": {
         "type": "object",
         "properties": {

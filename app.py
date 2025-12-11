@@ -1,24 +1,38 @@
 from openai import OpenAI
-import os
+from tools.sentiment_analyzer.server import SentimentAnalyzer
+from tools.response_generator.server import ResponseGenerator
+from tools.review_manager.server import ReviewManager
 
 client = OpenAI(
     base_url="http://localhost:1234/v1",
     api_key="lm-studio"
 )
 
+sent_tool = SentimentAnalyzer()
+resp_tool = ResponseGenerator()
+rev_tool = ReviewManager()
 
 def run_agent(user_review):
-    response = client.chat.completions.create(
+
+    # 1) Analizar sentimiento
+    result = sent_tool.analyze_sentiment(user_review)
+    sentiment = result["sentiment"]
+
+    # 2) Generar respuesta automática
+    auto_reply = resp_tool.generate_reply(user_review, sentiment)["reply"]
+
+    # 3) Guardar reseña + respuesta
+    rev_tool.save_review(user_review, auto_reply)
+
+    # 4) Mejorar la respuesta con el LLM
+    llm_output = client.chat.completions.create(
         model="llama-3.1-8b-instruct",
         messages=[
-            {"role": "system",
-             "content": "Eres un agente que responde reseñas de hoteles de forma amable, formal y profesional."},
-            {"role": "user", "content": user_review}
+            {"role": "system", "content": "Mejora el tono manteniendo la intención original."},
+            {"role": "user", "content": auto_reply}
         ]
     )
 
-    # LM Studio devuelve un objeto con .choices
-    reply_text = response.choices[0].message.content
+    final_reply = llm_output.choices[0].message.content
 
-    # Devolvemos un string para Streamlit
-    return reply_text
+    return final_reply

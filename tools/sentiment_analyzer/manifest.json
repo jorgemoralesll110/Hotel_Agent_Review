@@ -4,7 +4,7 @@
   "tools": [
     {
       "name": "analyze_sentiment",
-      "description": "Clasifica la reseña según sentimiento.",
+      "description": "Analiza el sentimiento del texto.",
       "input_schema": {
         "type": "object",
         "properties": {

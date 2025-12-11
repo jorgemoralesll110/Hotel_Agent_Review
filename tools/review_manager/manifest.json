@@ -4,7 +4,7 @@
   "tools": [
     {
       "name": "save_review",
-      "description": "Guarda una reseña y su respuesta generada.",
+      "description": "Guarda una reseña y su respuesta.",
       "input_schema": {
         "type": "object",
         "properties": {
