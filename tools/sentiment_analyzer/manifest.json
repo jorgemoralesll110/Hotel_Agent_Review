@@ -1,0 +1,17 @@
+{
+  "name": "sentiment_analyzer",
+  "version": "1.0.0",
+  "tools": [
+    {
+      "name": "analyze_sentiment",
+      "description": "Clasifica la reseña según sentimiento.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "text": {"type": "string"}
+        },
+        "required": ["text"]
+      }
+    }
+  ]
+}

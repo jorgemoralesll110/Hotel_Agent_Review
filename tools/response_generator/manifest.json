@@ -1,0 +1,18 @@
+{
+  "name": "response_generator",
+  "version": "1.0.0",
+  "tools": [
+    {
+      "name": "generate_reply",
+      "description": "Genera una respuesta basada en el sentimiento.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "review": {"type": "string"},
+          "sentiment": {"type": "string"}
+        },
+        "required": ["review", "sentiment"]
+      }
+    }
+  ]
+}
