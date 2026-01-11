@@ -1,0 +1,24 @@
+{
+  "name": "hotel_review_processor",
+  "description": "MCP para analizar reseñas de hoteles: idioma, sentimiento y aspectos clave",
+  "version": "1.0.0",
+  "source": {
+    "type": "filesystem",
+    "path": "./hotel_review_processor"
+  },
+  "tools": [
+    {
+      "name": "analyze_review",
+      "description": "Analiza una reseña y devuelve idioma, sentimiento y aspectos",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": ["text"]
+      }
+    }
+  ]
+}

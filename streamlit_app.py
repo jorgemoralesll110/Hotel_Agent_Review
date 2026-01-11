@@ -1,12 +1,12 @@
 import streamlit as st
 from app import run_agent
 
-st.title("Chatbot para responder reseñas de hoteles")
+st.title("Asistente de respuesta a reseñas de hoteles ⭐")
 
-review = st.text_area("Escribe una reseña del cliente:")
+review = st.text_area("Introduce la reseña del cliente")
 
 if st.button("Generar respuesta"):
-    if review.strip() != "":
-        output = run_agent(review)
-        st.write("### Respuesta generada:")
-        st.success(output)
+    if review.strip():
+        reply = run_agent(review)
+        st.subheader("Respuesta generada")
+        st.success(reply)

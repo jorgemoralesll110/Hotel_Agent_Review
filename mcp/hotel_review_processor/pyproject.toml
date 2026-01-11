@@ -1,0 +1,7 @@
+[project]
+name = "hotel-review-processor"
+version = "1.0.0"
+dependencies = [
+  "langdetect",
+  "textblob"
+]

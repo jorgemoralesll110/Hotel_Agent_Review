@@ -1,38 +1,44 @@
 from openai import OpenAI
-from tools.sentiment_analyzer.server import SentimentAnalyzer
-from tools.response_generator.server import ResponseGenerator
-from tools.review_manager.server import ReviewManager
+from dotenv import load_dotenv
+import os
 
-client = OpenAI(
-    base_url="http://localhost:1234/v1",
-    api_key="lm-studio"
-)
+from tools.language import detect_language
+from tools.sentiment import analyze_sentiment
+from tools.aspects import extract_aspects
 
-sent_tool = SentimentAnalyzer()
-resp_tool = ResponseGenerator()
-rev_tool = ReviewManager()
+load_dotenv()
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-def run_agent(user_review):
+def run_agent(review: str):
 
-    # 1) Analizar sentimiento
-    result = sent_tool.analyze_sentiment(user_review)
-    sentiment = result["sentiment"]
+    language = detect_language(review)
+    sentiment = analyze_sentiment(review)
+    aspects = extract_aspects(review)
 
-    # 2) Generar respuesta automática
-    auto_reply = resp_tool.generate_reply(user_review, sentiment)["reply"]
+    system_prompt = f"""
+You are a professional hotel customer service assistant.
 
-    # 3) Guardar reseña + respuesta
-    rev_tool.save_review(user_review, auto_reply)
+Respond to the customer's review in a personalized, polite and empathetic way.
+The response must NOT be generic.
 
-    # 4) Mejorar la respuesta con el LLM
-    llm_output = client.chat.completions.create(
-        model="llama-3.1-8b-instruct",
+Context:
+- Language: {language}
+- Sentiment: {sentiment}
+- Mentioned aspects: {", ".join(aspects) if aspects else "none"}
+
+Guidelines:
+- Respond in the detected language.
+- If the review is negative, acknowledge the problem and show willingness to improve.
+- If the review is positive, thank the customer sincerely.
+- Address specific aspects mentioned in the review.
+"""
+
+    response = client.chat.completions.create(
+        model="gpt-4.1-mini",
         messages=[
-            {"role": "system", "content": "Mejora el tono manteniendo la intención original."},
-            {"role": "user", "content": auto_reply}
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": review}
         ]
     )
 
-    final_reply = llm_output.choices[0].message.content
-
-    return final_reply
+    return response.choices[0].message.content
