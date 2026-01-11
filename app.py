@@ -1,30 +1,22 @@
 from openai import OpenAI
 from dotenv import load_dotenv
 import os
-import subprocess
-import json
 
 load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 def run_agent(review: str):
 
-    result = subprocess.run(
-        ["fastmcp", "call", "hotel-review-processor.analyze_review", review],
-        capture_output=True,
-        text=True
-    )
-
-    analysis = result.stdout
-
     prompt = f"""
 You are a professional hotel customer service assistant.
 
-The following analysis has been obtained from an external tool:
-{analysis}
+You have access to external tools that provide:
+- Review analysis (language, sentiment, aspects)
+- Service guidelines for handling customer issues
 
-Using this information, respond politely, empathetically and specifically.
-Avoid generic responses.
+Based on the information obtained from these tools, generate a polite,
+empathetic and professional response. Follow service guidelines and
+address the specific issues mentioned.
 
 Customer review:
 {review}
