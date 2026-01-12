@@ -88,7 +88,7 @@ En terminales separadas:
 
 ```bash
 fastmcp run mcp/hotel_review_processor/server.py
-fastmcp run mcp/public_hotel_policies/server.py
+fastmcp run mcp/public_utils/server.py
 ```
 Y luego, ejecutar la interfaz gráfica:
 ```bash
