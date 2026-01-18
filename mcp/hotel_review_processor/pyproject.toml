@@ -1,7 +1,5 @@
 [project]
-name = "hotel-review-processor"
-version = "1.0.0"
-dependencies = [
-  "langdetect",
-  "textblob"
-]
+name = "hotel_review_processor"
+version = "0.1.0"
+requires-python = ">=3.10"
+dependencies = ["fastmcp", "langdetect", "textblob"]
