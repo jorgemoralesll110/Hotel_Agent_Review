@@ -13,15 +13,15 @@ El objetivo principal es demostrar cómo un agente puede **razonar sobre una ent
 
 La solución sigue una arquitectura modular compuesta por los siguientes elementos:
 
-- **Agente LLM** (OpenAI): responsable de generar la respuesta final al cliente.
-- **MCP propio (FastMCP)**: encargado del análisis automático de la reseña.
-- **MCP público (FastMCP)**: encargado de proporcionar directrices generales de actuación ante incidencias.
+- **Agente LLM (OpenAI)**: responsable de generar la respuesta final al cliente y decidir cuándo utilizar herramientas externas.
+- **MCP propio (FastMCP)**: encargado del análisis automático de la reseña del cliente.
+- **MCP genérico adicional (FastMCP)**: encargado de proporcionar directrices generales de actuación en atención al cliente.
+- **Sistema de persistencia**: almacenamiento local de conversaciones y mensajes mediante SQLite.
 - **Interfaz gráfica**: aplicación web desarrollada con Streamlit para interactuar con el agente.
 
-De forma conceptual, el flujo es el siguiente:
+De forma conceptual, el flujo del sistema es el siguiente:
 
-Reseña del usuario → MCP propio (análisis (idioma, sentimiento, aspectos)) → MCP público (directrices de actuación) → Agente LLM (respuesta final al cliente)
-
+Reseña del usuario → MCP de análisis (idioma, sentimiento, aspectos) → MCP de directrices → Agente LLM → Respuesta final al cliente
 
 ---
 
@@ -31,52 +31,63 @@ Se ha implementado un MCP propio mediante **FastMCP** que expone la herramienta:
 
 ### `analyze_review(text: str) -> dict`
 
-Esta herramienta analiza una reseña de hotel y devuelve:
+Esta herramienta analiza una reseña de hotel y devuelve información estructurada que incluye:
 - Idioma detectado
 - Sentimiento (positivo, negativo o neutro)
-- Aspectos mencionados (limpieza, servicio, habitación, ruido, comida, etc.)
+- Aspectos mencionados (limpieza, personal, habitación, ruido, comida, ubicación, etc.)
 
-Este MCP representa una tarea claramente delegable a una herramienta externa, evitando que el LLM realice análisis heurísticos directamente.
+Este MCP encapsula lógica de procesamiento de lenguaje natural basada en reglas y librerías clásicas, delegando esta tarea fuera del LLM y favoreciendo una arquitectura modular y explicable.
 
 ---
 
-## MCP público integrado
+## MCP genérico adicional
 
-De forma adicional (apartado opcional de la práctica), se ha integrado un **MCP público** que proporciona **directrices genéricas de actuación en atención al cliente hotelero**.
+De forma adicional (apartado opcional de la práctica), se ha implementado un segundo MCP mediante **FastMCP**, de carácter genérico y reutilizable, que proporciona **directrices generales de actuación en atención al cliente hotelero**.
 
 ### `get_service_guidelines(issues: list[str]) -> dict`
 
-A partir de los problemas detectados en la reseña, este MCP devuelve recomendaciones de actuación tales como:
+A partir de los problemas detectados en la reseña, esta herramienta devuelve recomendaciones de actuación tales como:
 - Escalado a limpieza o mantenimiento
 - Seguimiento por parte de gestión
 - Revisión de procesos de atención al cliente
-- Medidas ante ruido o calidad del servicio
+- Medidas ante problemas de ruido o calidad del servicio
 
-Este MCP no depende de datos locales del hotel y representa políticas reutilizables, por lo que resulta defendible como herramienta pública.
+Este MCP no depende de datos locales específicos del hotel y representa políticas de actuación generales, por lo que resulta defendible como herramienta reutilizable.
+
+---
+
+## Persistencia de conversaciones
+
+El sistema incorpora un **mecanismo de persistencia local** basado en **SQLite**, que permite almacenar:
+
+- Conversaciones (identificador, fecha de creación y título)
+- Mensajes asociados a cada conversación (rol, contenido, timestamp y metadatos opcionales)
+
+Esta capa de persistencia permite mantener el historial de conversaciones entre ejecuciones de la aplicación y separar claramente la lógica de almacenamiento del razonamiento del agente.
 
 ---
 
 ## Nota sobre la integración MCP–OpenAI
 
-Actualmente, el **SDK oficial de OpenAI para Python no soporta de forma nativa la invocación dinámica de MCP** desde la API (`tool calling` con MCP).
+Actualmente, el **SDK oficial de OpenAI para Python no ofrece soporte nativo específico para la invocación directa de MCP** como concepto unificado.
 
 Por este motivo:
-- Los MCP se han implementado como **servicios independientes y ejecutables**.
-- La integración con el agente se ha diseñado y demostrado **a nivel arquitectónico y conceptual**, priorizando la estabilidad de la aplicación final.
-- El comportamiento del agente refleja el uso de herramientas externas mediante respuestas alineadas con análisis y directrices obtenidas de los MCP.
+- Los MCP se implementan como **servicios independientes y ejecutables** mediante FastMCP.
+- La integración con el agente se realiza a nivel **arquitectónico y de diseño**, mostrando claramente cómo el agente razona, delega tareas en herramientas externas y utiliza sus resultados para generar respuestas.
+- El comportamiento del agente refleja el uso de herramientas externas de forma coherente con los requisitos de la práctica.
 
-Esta decisión es coherente con el estado actual de las herramientas y no afecta al cumplimiento de los requisitos de la práctica.
+Esta aproximación es consistente con el estado actual de las herramientas y cumple los objetivos formativos del ejercicio.
 
 ---
 
 ## Interfaz de usuario
 
 El sistema cuenta con una **interfaz gráfica desarrollada en Streamlit**, que permite:
-- Introducir una reseña de cliente
-- Ejecutar el agente
-- Visualizar la respuesta generada
+- Introducir reseñas de clientes
+- Interactuar con el agente conversacional
+- Visualizar las respuestas generadas
 
-La interfaz actúa como cliente del agente, manteniendo separada la lógica de razonamiento y el procesamiento de herramientas.
+La interfaz actúa como cliente del agente, manteniendo separada la lógica de razonamiento, el procesamiento de herramientas y la persistencia de datos.
 
 ---
 
@@ -90,7 +101,11 @@ En terminales separadas:
 fastmcp run mcp/hotel_review_processor/server.py
 fastmcp run mcp/public_utils/server.py
 ```
-Y luego, ejecutar la interfaz gráfica:
+
+### 2. Ejecutar la interfaz gráfica
+
 ```bash
 streamlit run streamlit_app.py
 ```
+
+La aplicación permitirá introducir reseñas de clientes y observar el flujo completo de razonamiento del agente y el uso de herramientas MCP.
