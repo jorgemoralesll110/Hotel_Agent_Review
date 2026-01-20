@@ -14,7 +14,7 @@ from fastmcp import Client
 load_dotenv()
 
 
-def _run_coro_sync(coro):
+def run_coro_sync(coro):
     try:
         asyncio.get_running_loop()
     except RuntimeError:
@@ -24,13 +24,13 @@ def _run_coro_sync(coro):
 
     box: Dict[str, Any] = {"value": None, "error": None}
 
-    def _runner():
+    def runner():
         try:
             box["value"] = asyncio.run(coro)
         except Exception as e:
             box["error"] = e
 
-    t = threading.Thread(target=_runner, daemon=True)
+    t = threading.Thread(target=runner, daemon=True)
     t.start()
     t.join()
 
@@ -39,11 +39,11 @@ def _run_coro_sync(coro):
     return box["value"]
 
 
-def _project_root() -> Path:
+def project_root() -> Path:
     return Path(__file__).resolve().parent
 
 
-def _make_mcp_config() -> Dict[str, Any]:
+def make_mcp_config() -> Dict[str, Any]:
     transport = os.getenv("MCP_TRANSPORT", "stdio").strip().lower()
 
     if transport == "http":
@@ -56,7 +56,7 @@ def _make_mcp_config() -> Dict[str, Any]:
             }
         }
 
-    root = _project_root()
+    root = project_root()
     review_server = str(root / "mcp" / "hotel_review_processor" / "server.py")
     policies_server = str(root / "mcp" / "public_utils" / "server.py")
 
@@ -78,7 +78,7 @@ def _make_mcp_config() -> Dict[str, Any]:
     }
 
 
-def _get_attr(obj: Any, *names: str) -> Any:
+def get_attr(obj: Any, *names: str) -> Any:
     for n in names:
         if isinstance(obj, dict) and n in obj:
             return obj[n]
@@ -88,9 +88,9 @@ def _get_attr(obj: Any, *names: str) -> Any:
 
 
 def _tool_to_openai(tool_obj: Any) -> Dict[str, Any]:
-    name = _get_attr(tool_obj, "name")
-    desc = _get_attr(tool_obj, "description") or ""
-    schema = _get_attr(tool_obj, "inputSchema", "input_schema", "input_schema_")
+    name = get_attr(tool_obj, "name")
+    desc = get_attr(tool_obj, "description") or ""
+    schema = get_attr(tool_obj, "inputSchema", "input_schema", "input_schema_")
 
     if not isinstance(schema, dict):
         schema = {"type": "object", "properties": {}}
@@ -105,7 +105,7 @@ def _tool_to_openai(tool_obj: Any) -> Dict[str, Any]:
     }
 
 
-def _normalize_tool_result(result: Any) -> Any:
+def normalize_tool_result(result: Any) -> Any:
     def to_jsonable(x: Any) -> Any:
         if x is None:
             return None
@@ -171,7 +171,7 @@ def build_system_prompt(mode: str) -> str:
     )
 
 
-async def _run_agent_async(
+async def run_agent_async(
     user_text: str,
     *,
     chat_history: Optional[List[Dict[str, Any]]] = None,
@@ -185,7 +185,7 @@ async def _run_agent_async(
 
     oai = OpenAI(api_key=api_key)
 
-    mcp_config = _make_mcp_config()
+    mcp_config = make_mcp_config()
     mcp_client = Client(mcp_config)
 
     tool_trace: List[Dict[str, Any]] = []
@@ -241,7 +241,7 @@ async def _run_agent_async(
 
                 try:
                     res = await mcp_client.call_tool(tool_name, args)
-                    norm = _normalize_tool_result(res)
+                    norm = normalize_tool_result(res)
                     ok = True
                     err = None
                 except Exception as e:
@@ -287,8 +287,8 @@ def run_agent(
     max_tool_rounds: int = 6,
     mode: str = "Análisis interno",
 ) -> AgentResult:
-    return _run_coro_sync(
-        _run_agent_async(
+    return run_coro_sync(
+        run_agent_async(
             user_text,
             chat_history=chat_history,
             model=model,

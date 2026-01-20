@@ -25,7 +25,7 @@ st.session_state.setdefault("last_messages_sent", [])
 st.session_state.setdefault("last_tools", [])
 st.session_state.setdefault("mode", "Análisis interno")
 
-def _new_conversation():
+def new_conversation():
     st.session_state.history = []
     st.session_state.last_trace = []
     st.session_state.last_messages_sent = []
@@ -36,7 +36,7 @@ def _new_conversation():
     create_conversation(st.session_state.conversation_id, title=title)
 
 if "conversation_id" not in st.session_state:
-    _new_conversation()
+    new_conversation()
 
 with st.sidebar:
     st.subheader("Opciones")
@@ -55,13 +55,13 @@ with st.sidebar:
     colA, colB = st.columns(2)
     with colA:
         if st.button("Nueva"):
-            _new_conversation()
+            new_conversation()
             st.rerun()
     with colB:
         if st.button("Borrar actual"):
             # borra la actual y crea otra
             delete_conversation(st.session_state.conversation_id)
-            _new_conversation()
+            new_conversation()
             st.rerun()
 
     st.markdown("---")

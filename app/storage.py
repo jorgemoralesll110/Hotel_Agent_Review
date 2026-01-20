@@ -3,7 +3,7 @@ import json
 import time
 from typing import Any, Dict, List, Optional, Tuple
 
-DB_PATH = "conversations.db"
+DB_PATH = "../conversations.db"
 
 
 def _conn() -> sqlite3.Connection:
