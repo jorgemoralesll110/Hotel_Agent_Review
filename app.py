@@ -1,15 +1,19 @@
+
 from __future__ import annotations
+
 import asyncio
 import json
 import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+
 from dotenv import load_dotenv
 from openai import OpenAI
 from fastmcp import Client
 
 load_dotenv()
+
 
 def _run_coro_sync(coro):
     try:
@@ -36,13 +40,11 @@ def _run_coro_sync(coro):
     return box["value"]
 
 
-
 def _project_root() -> Path:
     return Path(__file__).resolve().parent
 
 
 def _make_mcp_config() -> Dict[str, Any]:
-
     transport = os.getenv("MCP_TRANSPORT", "stdio").strip().lower()
 
     if transport == "http":
@@ -76,6 +78,7 @@ def _make_mcp_config() -> Dict[str, Any]:
         }
     }
 
+
 def _get_attr(obj: Any, *names: str) -> Any:
     for n in names:
         if isinstance(obj, dict) and n in obj:
@@ -83,6 +86,7 @@ def _get_attr(obj: Any, *names: str) -> Any:
         if hasattr(obj, n):
             return getattr(obj, n)
     return None
+
 
 def _tool_to_openai(tool_obj: Any) -> Dict[str, Any]:
     name = _get_attr(tool_obj, "name")
@@ -101,8 +105,8 @@ def _tool_to_openai(tool_obj: Any) -> Dict[str, Any]:
         },
     }
 
-def _normalize_tool_result(result: Any) -> Any:
 
+def _normalize_tool_result(result: Any) -> Any:
     def to_jsonable(x: Any) -> Any:
         if x is None:
             return None
@@ -129,6 +133,7 @@ def _normalize_tool_result(result: Any) -> Any:
 
     return to_jsonable(result)
 
+
 @dataclass
 class AgentResult:
     final_answer: str
@@ -136,15 +141,36 @@ class AgentResult:
     messages_sent: List[Dict[str, Any]]
     discovered_tools: List[Dict[str, Any]]
 
-SYSTEM_PROMPT = """Eres un agente de atención al cliente de un hotel.
-Objetivo: ayudar a un supervisor a entender una reseña y proponer acciones.
 
-Reglas:
-- Usa las herramientas MCP cuando sea útil.
-- Responde en el idioma de la reseña si es posible.
-- Da una salida final clara con: Resumen, Problemas detectados, Recomendaciones accionables, y Tono sugerido de respuesta al cliente.
-- Si faltan datos, haz suposiciones prudentes y menciónalas.
-"""
+def build_system_prompt(mode: str) -> str:
+    base = (
+        "Eres un agente de atención al cliente de un hotel.\n"
+        "Puedes usar herramientas MCP cuando sea útil.\n"
+        "Responde en el idioma de la reseña si es posible.\n"
+        "Si faltan datos, haz suposiciones prudentes y menciónalas (solo en modo interno).\n"
+    )
+
+    if mode == "Respuesta al cliente":
+        return base + (
+            "\nTAREA: Redacta una respuesta al cliente LISTA PARA ENVIAR.\n"
+            "REGLAS IMPORTANTES:\n"
+            "- No menciones herramientas, MCP, modelos, trazas, ni 'según el análisis'.\n"
+            "- Tono: profesional, empático, resolutivo.\n"
+            "- Estructura: agradecimiento, disculpa si procede, acciones/solución, invitación a volver, firma corta.\n"
+            "- Sé breve (6-12 líneas aprox.) y concreta.\n"
+        )
+
+    # Modo análisis interno
+    return base + (
+        "\nTAREA: Haz un análisis interno para el equipo del hotel.\n"
+        "Salida final clara con:\n"
+        "- Resumen\n"
+        "- Problemas detectados\n"
+        "- Recomendaciones accionables\n"
+        "- Tono sugerido de respuesta al cliente\n"
+        "Puedes usar bullets.\n"
+    )
+
 
 async def _run_agent_async(
     user_text: str,
@@ -152,6 +178,7 @@ async def _run_agent_async(
     chat_history: Optional[List[Dict[str, Any]]] = None,
     model: str = "gpt-4.1-mini",
     max_tool_rounds: int = 6,
+    mode: str = "Análisis interno",
 ) -> AgentResult:
     api_key = os.getenv("OPENAI_API_KEY", "").strip()
     if not api_key:
@@ -165,7 +192,8 @@ async def _run_agent_async(
     tool_trace: List[Dict[str, Any]] = []
     messages_sent: List[Dict[str, Any]] = []
 
-    messages: List[Dict[str, Any]] = [{"role": "system", "content": SYSTEM_PROMPT}]
+    system_prompt = build_system_prompt(mode)
+    messages: List[Dict[str, Any]] = [{"role": "system", "content": system_prompt}]
     if chat_history:
         messages.extend(chat_history)
     messages.append({"role": "user", "content": user_text})
@@ -193,6 +221,7 @@ async def _run_agent_async(
                     discovered_tools=openai_tools,
                 )
 
+            # Guardar tool_calls
             messages.append(
                 {
                     "role": "assistant",
@@ -250,18 +279,25 @@ async def _run_agent_async(
             discovered_tools=openai_tools,
         )
 
+
 def run_agent(
     user_text: str,
     *,
     chat_history: Optional[List[Dict[str, Any]]] = None,
     model: str = "gpt-4.1-mini",
     max_tool_rounds: int = 6,
+    mode: str = "Análisis interno",
 ) -> AgentResult:
     return _run_coro_sync(
         _run_agent_async(
-            user_text, chat_history=chat_history, model=model, max_tool_rounds=max_tool_rounds
+            user_text,
+            chat_history=chat_history,
+            model=model,
+            max_tool_rounds=max_tool_rounds,
+            mode=mode,
         )
     )
+
 
 def build_next_history(
     previous_history: List[Dict[str, Any]],

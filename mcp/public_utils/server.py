@@ -1,3 +1,4 @@
+
 from __future__ import annotations
 
 from fastmcp import FastMCP
@@ -14,6 +15,7 @@ mcp = FastMCP("public-hotel-policies")
 )
 def get_service_guidelines_tool(issues: list[str]) -> dict:
     return get_service_guidelines(issues=issues)
+
 
 if __name__ == "__main__":
     mcp.run()
