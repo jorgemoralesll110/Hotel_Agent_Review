@@ -1,45 +1,20 @@
+from __future__ import annotations
+
 from fastmcp import FastMCP
-from langdetect import detect
-from textblob import TextBlob
+
+from logic import analyze_review
 
 mcp = FastMCP("hotel-review-processor")
 
-@mcp.tool()
-def analyze_review(text: str) -> dict:
-    """
-    Analyze a hotel review and extract language, sentiment and aspects.
-    """
 
-    try:
-        language = detect(text)
-    except Exception:
-        language = "unknown"
+@mcp.tool(
+    name="analyze_review",
+    description="Analiza una reseña de hotel: idioma, sentimiento, aspectos y severidad aproximada.",
+    annotations={"readOnlyHint": True},
+)
+def analyze_review_tool(text: str) -> dict:
+    return analyze_review(text=text)
 
-    polarity = TextBlob(text).sentiment.polarity
-    if polarity > 0.2:
-        sentiment = "positive"
-    elif polarity < -0.2:
-        sentiment = "negative"
-    else:
-        sentiment = "neutral"
 
-    aspects = []
-    keywords = {
-        "cleanliness": ["clean", "dirty", "limpio", "sucio"],
-        "service": ["staff", "service", "personal", "servicio"],
-        "room": ["room", "habitación"],
-        "food": ["food", "breakfast", "comida", "desayuno"],
-        "noise": ["noise", "ruido"],
-        "location": ["location", "ubicación"]
-    }
-
-    lower = text.lower()
-    for aspect, words in keywords.items():
-        if any(w in lower for w in words):
-            aspects.append(aspect)
-
-    return {
-        "language": language,
-        "sentiment": sentiment,
-        "aspects": aspects
-    }
+if __name__ == "__main__":
+    mcp.run()
